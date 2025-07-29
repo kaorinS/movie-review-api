@@ -1,0 +1,64 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================================
+//  ユーザーテーブル
+// ==================================
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String
+  password  String
+  role       Role     @default(MEMBER)
+  status     Status   @default(PENDING_VERIFICATION)
+  is_deleted Boolean  @default(false)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // --- 他のテーブルとの関連付け ---
+  reviews   Review[]
+}
+
+// ==================================
+//  レビューテーブル
+// ==================================
+model Review {
+  id        Int      @id @default(autoincrement())
+  rating    Int
+  comment   String
+  movieId   String
+  is_deleted Boolean  @default(false)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // --- 他のテーブルとの関連付け ---
+  author    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+}
+
+
+// ==================================
+//  Enum定義 (選択肢の定義)
+// ==================================
+enum Role {
+  ADMIN   // 管理者
+  MEMBER  // 一般会員
+}
+
+enum Status {
+  ACTIVE                // 有効
+  PENDING_VERIFICATION  // メールアドレス確認待ち
+  SUSPENDED             // 利用停止中
+}
