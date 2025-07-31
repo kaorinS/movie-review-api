@@ -2,14 +2,15 @@ import express from "express";
 import { Prisma, PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
 // ユーザー登録用のバリデーションスキーマを定義
 const registrationSchema = z.object({
-  name: z.string().min(1, { message: "名前は必須です" }),
-  email: z.email({ message: "不正なメールアドレス形式です" }),
+  name: z.string().min(1, { message: "名前を入力してください" }),
+  email: z.email({ message: "誤ったメールアドレス形式です" }),
   password: z
     .string()
     .min(8, { message: "パスワードは8文字以上で入力してください" })
@@ -69,6 +70,58 @@ router.post("/register", async (req, res) => {
     // それ以外の予期せぬエラー
     console.error(error);
     res.status(500).json({ message: "Something went wrong" });
+  }
+});
+
+// ログイン用のバリデーションスキーマ
+const loginSchema = z.object({
+  email: z.email({ message: "誤ったメールアドレス形式です" }),
+  password: z.string().min(1, { message: "パスワードを入力してください" }),
+});
+
+// ログインのエンドポイント
+router.post('/login', async (req, res) => {
+  try {
+    // 1. 入力値のバリデーション
+    const { email, password } = loginSchema.parse(req.body);
+
+    // 2. メールアドレスでユーザーを検索
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+    if (!user) {
+      // ユーザーが見つからない場合はエラー
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // 3. パスワードの照合
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      // パスワードが一致しない場合はエラー
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // 4. JWTを生成
+    const token = jwt.sign(
+      { userId: user.id, role: user.role }, // トークンに含める情報
+      process.env.JWT_SECRET as string,       // .envから秘密鍵を読み込む
+      { expiresIn: '1h' }                      // 有効期限 (例: 1時間)
+    );
+
+    // 5. JWTをクライアントに返す
+    res.json({ token });
+
+  } catch (error) {
+    // Zodバリデーションエラーの処理
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        message: 'Invalid request body',
+        errors: error.issues,
+      });
+    }
+    // その他のサーバーエラー
+    console.error(error);
+    res.status(500).json({ message: 'Something went wrong' });
   }
 });
 
