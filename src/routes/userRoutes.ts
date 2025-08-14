@@ -3,19 +3,20 @@ import { Prisma, PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import jwt from 'jsonwebtoken';
+import { ERROR_MESSAGES } from '../constants/errorMessages';
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
 // ユーザー登録用のバリデーションスキーマを定義
 const registrationSchema = z.object({
-  name: z.string().min(1, { message: '名前を入力してください' }),
-  email: z.email({ message: '誤ったメールアドレス形式です' }),
+  name: z.string().min(1, { message: ERROR_MESSAGES.REQUIRED('名前') }),
+  email: z.email({ message: ERROR_MESSAGES.INVALID_EMAIL }),
   password: z
     .string()
-    .min(8, { message: 'パスワードは8文字以上で入力してください' })
+    .min(8, { message: ERROR_MESSAGES.PASSWORD_MIN_LENGTH })
     .regex(/^[a-zA-Z0-9]+$/, {
-      message: 'パスワードは半角英数字のみで入力してください',
+      message: ERROR_MESSAGES.PASSWORD_ALPHANUMERIC,
     }),
 });
 
@@ -55,28 +56,30 @@ router.post('/register', async (req, res) => {
       if (error.code === 'P2002') {
         return res
           .status(409)
-          .json({ message: 'This email is already in use' });
+          .json({ message: ERROR_MESSAGES.DUPLICATION_EMAIL });
       }
     }
 
     // Zodのバリデーションエラーの場合、より詳細な情報を返す
     if (error instanceof z.ZodError) {
       return res.status(400).json({
-        message: 'Invalid request body',
+        message: ERROR_MESSAGES.INVALID,
         errors: error.issues, // どの項目がどんな理由でエラーになったかの詳細
       });
     }
 
     // それ以外の予期せぬエラー
     console.error(error);
-    res.status(500).json({ message: 'Something went wrong' });
+    res.status(500).json({ message: ERROR_MESSAGES.ERROR });
   }
 });
 
 // ログイン用のバリデーションスキーマ
 const loginSchema = z.object({
-  email: z.email({ message: '誤ったメールアドレス形式です' }),
-  password: z.string().min(1, { message: 'パスワードを入力してください' }),
+  email: z.email({ message: ERROR_MESSAGES.INVALID_EMAIL }),
+  password: z
+    .string()
+    .min(1, { message: ERROR_MESSAGES.REQUIRED('パスワード') }),
 });
 
 // ログインのエンドポイント
@@ -91,14 +94,14 @@ router.post('/login', async (req, res) => {
     });
     if (!user) {
       // ユーザーが見つからない場合はエラー
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: ERROR_MESSAGES.INVALID });
     }
 
     // 3. パスワードの照合
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       // パスワードが一致しない場合はエラー
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: ERROR_MESSAGES.INVALID });
     }
 
     // 4. JWTを生成
@@ -114,13 +117,13 @@ router.post('/login', async (req, res) => {
     // Zodバリデーションエラーの処理
     if (error instanceof z.ZodError) {
       return res.status(400).json({
-        message: 'Invalid request body',
+        message: ERROR_MESSAGES.INVALID,
         errors: error.issues,
       });
     }
     // その他のサーバーエラー
     console.error(error);
-    res.status(500).json({ message: 'Something went wrong' });
+    res.status(500).json({ message: ERROR_MESSAGES.ERROR });
   }
 });
 

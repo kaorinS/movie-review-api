@@ -36,8 +36,9 @@ model User {
 // ==================================
 model Review {
   id        Int      @id @default(autoincrement())
-  rating    Int
-  comment   String
+  rating    Int // 評価（☆1〜5）
+  comment_general String? // ネタバレなしコメント (任意)
+  comment_spoiler String? // ネタバレありコメント (任意)
   movieId   String
   is_deleted Boolean  @default(false)
   created_at DateTime @default(now())

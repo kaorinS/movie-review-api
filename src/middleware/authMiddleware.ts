@@ -1,13 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-
-// ExpressのRequestオブジェクトに、カスタムプロパティを追加するための型定義
-interface AuthRequest extends Request {
-  user?: {
-    userId: number;
-    role: string;
-  };
-}
+import { AuthRequest } from '../types';
+import { Role } from '@prisma/client';
+import { ERROR_MESSAGES } from '../constants/errorMessages';
 
 export const authMiddleware = (
   req: AuthRequest,
@@ -18,7 +13,7 @@ export const authMiddleware = (
   // req.headersはクライアントが送信したリクエストの「header情報」が全て入っているオブジェクト
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'Authentication token required' });
+    return res.status(401).json({ message: ERROR_MESSAGES.TOKEN_REQUIRED });
   }
   const token = authHeader.split(' ')[1];
 
@@ -27,12 +22,12 @@ export const authMiddleware = (
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
 
     // 3. 検証成功なら、リクエストオブジェクトにユーザー情報を格納
-    req.user = decoded as { userId: number; role: string };
+    req.user = decoded as { userId: number; role: Role };
 
     // 4. 次の処理へ進む
     next();
   } catch (error) {
     // 5. トークンが無効な場合はエラー
-    return res.status(401).json({ message: 'Invalid or expired token' });
+    return res.status(401).json({ message: ERROR_MESSAGES.TOKEN_INVALID });
   }
 };
