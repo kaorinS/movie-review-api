@@ -1,6 +1,6 @@
 import express from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { authMiddleware } from '../middleware/authMiddleware'; // 作成した認証ミドルウェアをインポート
 import { AuthRequest } from '../types';
 import { ERROR_MESSAGES } from '../constants/errorMessages';
@@ -73,6 +73,60 @@ router.post('/', authMiddleware, async (req: AuthRequest, res) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ errors: error.issues });
     }
+    console.error(error);
+    res.status(500).json({ message: ERROR_MESSAGES.ERROR });
+  }
+});
+
+// レビュー一覧取得のエンドポイント
+router.get('/', async (req, res) => {
+  try {
+    // 1. クライアントから送られてきたクエリパラメータを取得
+    const { sortBy, order, rating } = req.query;
+
+    // 2. Prismaに渡す検索条件を動的に構築
+    const findOptions: Prisma.ReviewFindManyArgs = {
+      include: {
+        // 関連するテーブルのデータも一緒に取得するためのオプション
+        // Reviewモデルのauthorリレーションを辿って、レビューを書いたUserの情報を取得する
+        author: {
+          select: { id: true, name: true },
+        },
+      },
+      orderBy: {
+        // 取得するデータの並び順を指定するオプション
+        created_at: 'desc', // デフォルトは新着順
+      },
+    };
+    // where句を後から追加するために、先に定義しておく
+    const where: Prisma.ReviewWhereInput = {};
+
+    // 3. 並び替え条件の指定があれば、orderByを上書き
+    if (sortBy === 'rating') {
+      findOptions.orderBy = {
+        rating: order === 'asc' ? 'asc' : 'desc', // ascでなければdescにする
+      };
+    } else if (sortBy === 'created_at') {
+      findOptions.orderBy = {
+        created_at: order === 'asc' ? 'asc' : 'desc',
+      };
+    }
+
+    // 4. 評価点による絞り込みがあれば、where条件を追加
+    if (rating) {
+      const ratingNumber = parseInt(rating as string, 10);
+      if (!isNaN(ratingNumber)) {
+        where.rating = ratingNumber;
+      }
+    }
+    // 最後にwhere句をfindOptionsに合体させる
+    findOptions.where = where;
+
+    // 5. 構築した検索条件でデータベースを検索
+    const reviews = await prisma.review.findMany(findOptions);
+
+    res.json(reviews);
+  } catch (error) {
     console.error(error);
     res.status(500).json({ message: ERROR_MESSAGES.ERROR });
   }
