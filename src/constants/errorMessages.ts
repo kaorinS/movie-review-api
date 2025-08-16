@@ -17,8 +17,14 @@ export const ERROR_MESSAGES = {
   TOKEN_REQUIRED: '認証トークンが必要です。',
   TOKEN_INVALID: '無効または期限切れのトークンです。',
 
+  // 外部API関連
+  API_ERROR_FETCHING: '外部APIからのデータ取得に失敗しました。',
+
+  // 映画情報関連
+  MOVIE_SAVING: '映画情報の保存に問題が発生しました。',
+
   // レビュー関連
-  RATING_NUMBER: '評価点は数値で入力してください。',
+  RATING_MAX_INT: '評価点は1〜5で入力してください。',
   REVIEW_COMMENT_REQUIRED:
     'ネタバレなし、またはネタバレありコメントのどちらか一方は必須です。',
 };

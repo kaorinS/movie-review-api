@@ -32,6 +32,22 @@ model User {
 }
 
 // ==================================
+//  映画テーブル
+// ==================================
+model Movie {
+  id           String   @id // 外部API(TMDbなど)のIDを主キーとして使うことを想定
+  title        String
+  release_date DateTime?
+  poster_path  String?
+  overview     String?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  // --- 他のテーブルとの関連付け ---
+  reviews Review[]
+}
+
+// ==================================
 //  レビューテーブル
 // ==================================
 model Review {
@@ -39,7 +55,6 @@ model Review {
   rating    Int // 評価（☆1〜5）
   comment_general String? // ネタバレなしコメント (任意)
   comment_spoiler String? // ネタバレありコメント (任意)
-  movieId   String
   is_deleted Boolean  @default(false)
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -47,6 +62,8 @@ model Review {
   // --- 他のテーブルとの関連付け ---
   author    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    Int
+  movie     Movie    @relation(fields: [movieId], references: [id])
+  movieId   String
 }
 
 

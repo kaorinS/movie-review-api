@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import userRoutes from './routes/userRoutes';
 import reviewRoutes from './routes/reviewRoutes';
+import movieRoutes from './routes/movieRoutes';
 
 const app = express(); // ExpressはWebアプリケーションを作るためのフレームワークなので、その本体をappと名付けるのが最もシンプルで分かりやすいとされている
 const port = 3001; // ポート番号は3000番台がよく使われる。衝突回避のため、今回は3001を使用
@@ -27,6 +28,9 @@ app.use('/api/users', userRoutes);
 
 // `/api/reviews`というURLで始まるリクエストは、全てreviewRoutesに任せる
 app.use('/api/reviews', reviewRoutes);
+
+// `/api/movies`というURLで始まるリクエストは、全てmovieRoutesに任せる
+app.use('/api/movies', movieRoutes);
 
 // サーバーの起動
 // 指定したポート番号でサーバーを起動する

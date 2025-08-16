@@ -12,14 +12,12 @@ const prisma = new PrismaClient();
 const reviewSchema = z
   .object({
     // 個々のルール
-    movieId: z
-      .string()
-      .min(1, { message: ERROR_MESSAGES.REQUIRED('映画タイトル') }),
+    movieId: z.string().min(1, { message: ERROR_MESSAGES.REQUIRED('映画ID') }),
     rating: z
       .number()
       .int()
-      .min(1, { message: ERROR_MESSAGES.REQUIRED('評価') })
-      .max(5),
+      .min(1, { message: ERROR_MESSAGES.REQUIRED('評価点') })
+      .max(5, { message: ERROR_MESSAGES.REQUIRED('評価点') }),
     comment_general: z.string().optional(), // 任意項目(optional()を付与)
     comment_spoiler: z.string().optional(), // 任意項目(optional()を付与)
   })
@@ -70,9 +68,11 @@ router.post('/', authMiddleware, async (req: AuthRequest, res) => {
 
     res.status(201).json(newReview);
   } catch (error) {
+    // Zodバリデーションエラーの場合
     if (error instanceof z.ZodError) {
       return res.status(400).json({ errors: error.issues });
     }
+    // その他のサーバーエラー
     console.error(error);
     res.status(500).json({ message: ERROR_MESSAGES.ERROR });
   }
@@ -92,9 +92,11 @@ router.get('/', async (req, res) => {
         author: {
           select: { id: true, name: true },
         },
+        // 映画情報も一緒に取得する
+        movie: true,
       },
       orderBy: {
-        // 取得するデータの並び順を指定するオプション
+        // レビューを取得する際に、レビューが紐づいているMovieテーブルの情報も一緒に取得する。
         created_at: 'desc', // デフォルトは新着順
       },
     };
