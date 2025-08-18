@@ -18,8 +18,14 @@ const reviewSchema = z
       .int()
       .min(1, { message: ERROR_MESSAGES.REQUIRED('評価点') })
       .max(5, { message: ERROR_MESSAGES.REQUIRED('評価点') }),
-    comment_general: z.string().optional(), // 任意項目(optional()を付与)
-    comment_spoiler: z.string().optional(), // 任意項目(optional()を付与)
+    comment_general: z
+      .string()
+      .max(1000, { message: ERROR_MESSAGES.REVIEW_MAX_LENGTH })
+      .optional(), // 任意項目(optional()を付与)
+    comment_spoiler: z
+      .string()
+      .max(1000, { message: ERROR_MESSAGES.REVIEW_MAX_LENGTH })
+      .optional(), // 任意項目(optional()を付与)
   })
   .refine(
     // 関係性のルール
@@ -90,10 +96,20 @@ router.get('/', async (req, res) => {
         // 関連するテーブルのデータも一緒に取得するためのオプション
         // Reviewモデルのauthorリレーションを辿って、レビューを書いたUserの情報を取得する
         author: {
-          select: { id: true, name: true },
+          select: {
+            id: true,
+            name: true,
+          },
         },
         // 映画情報も一緒に取得する
-        movie: true,
+        movie: {
+          select: {
+            id: true,
+            title: true,
+            poster_path: true,
+            release_date: true,
+          },
+        },
       },
       orderBy: {
         // レビューを取得する際に、レビューが紐づいているMovieテーブルの情報も一緒に取得する。

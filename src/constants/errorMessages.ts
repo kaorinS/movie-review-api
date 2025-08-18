@@ -27,4 +27,5 @@ export const ERROR_MESSAGES = {
   RATING_MAX_INT: '評価点は1〜5で入力してください。',
   REVIEW_COMMENT_REQUIRED:
     'ネタバレなし、またはネタバレありコメントのどちらか一方は必須です。',
+  REVIEW_MAX_LENGTH: 'コメントは1000文字以内で入力してください。',
 };
