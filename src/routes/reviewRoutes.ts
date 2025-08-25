@@ -84,6 +84,36 @@ router.post('/', authMiddleware, async (req: AuthRequest, res) => {
   }
 });
 
+// 新着レビュー5件を取得するエンドポイント
+router.get('/latest', async (req, res) => {
+  try {
+    const latestReviews = await prisma.review.findMany({
+      orderBy: {
+        created_at: 'desc', // 新しい順
+      },
+      take: 5, // 5件だけ取得する
+      include: {
+        author: {
+          select: { id: true, name: true },
+        },
+        movie: {
+          select: {
+            id: true,
+            title: true,
+            poster_path: true,
+            release_date: true,
+          },
+        },
+      },
+    });
+
+    res.json(latestReviews);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Something went wrong' });
+  }
+});
+
 // レビュー一覧取得のエンドポイント
 router.get('/', async (req, res) => {
   try {
